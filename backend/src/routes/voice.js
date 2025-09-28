@@ -1,10 +1,22 @@
 const express = require('express');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../../uploads/audio');
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true, mode: 0o755 });
+  }
+} catch (error) {
+  console.warn('Could not create uploads directory:', error.message);
+}
 
 // Configure multer for audio file uploads
 const upload = multer({
-  dest: './uploads/audio/',
+  dest: uploadsDir,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
