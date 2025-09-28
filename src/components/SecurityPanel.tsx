@@ -1,40 +1,104 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, ShieldAlert, ShieldCheck, AlertTriangle, Ban, Eye, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { apiService, wsService } from '@/lib/api';
 
 export const SecurityPanel = () => {
-  const [threats, setThreats] = useState([
-    {
-      id: 1,
-      ip: '203.0.113.5',
-      type: 'Brute Force Attack',
-      severity: 'high',
-      timestamp: '2024-01-15 14:23:45',
-      blocked: false,
-    },
-    {
-      id: 2,
-      ip: '198.51.100.42',
-      type: 'Port Scan',
-      severity: 'medium',
-      timestamp: '2024-01-15 14:18:12',
-      blocked: true,
-    },
-    {
-      id: 3,
-      ip: '192.0.2.15',
-      type: 'SQL Injection Attempt',
-      severity: 'critical',
-      timestamp: '2024-01-15 14:15:33',
-      blocked: true,
-    },
-  ]);
+  const [threats, setThreats] = useState<any[]>([]);
+  const [securityStats, setSecurityStats] = useState({
+    totalThreats: 0,
+    blockedIPs: 0,
+    activeSessions: 0,
+    failedLogins: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
-  const handleBlockIP = (id: number) => {
-    setThreats(threats.map(threat => 
-      threat.id === id ? { ...threat, blocked: true } : threat
-    ));
+  useEffect(() => {
+    const fetchSecurityData = async () => {
+      try {
+        const response = await apiService.getSecurityStatus();
+        if (response.success) {
+          setThreats(response.data?.threats || []);
+          setSecurityStats(response.data?.stats || {
+            totalThreats: 0,
+            blockedIPs: 0,
+            activeSessions: 0,
+            failedLogins: 0,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch security data:', error);
+        // Fallback to mock data
+        setThreats([
+          {
+            id: 1,
+            ip: '203.0.113.5',
+            type: 'Brute Force Attack',
+            severity: 'high',
+            timestamp: new Date().toLocaleString(),
+            blocked: false,
+          },
+          {
+            id: 2,
+            ip: '198.51.100.42',
+            type: 'Port Scan',
+            severity: 'medium',
+            timestamp: new Date().toLocaleString(),
+            blocked: true,
+          }
+        ]);
+        setSecurityStats({
+          totalThreats: 23,
+          blockedIPs: 5,
+          activeSessions: 8,
+          failedLogins: 2,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSecurityData();
+
+    // Listen for security updates via WebSocket
+    wsService.on('security_alert', (data: any) => {
+      const newThreat = {
+        id: Date.now(),
+        ip: data.ip,
+        type: data.type,
+        severity: data.severity,
+        timestamp: new Date().toLocaleString(),
+        blocked: false,
+      };
+      setThreats(prev => [newThreat, ...prev].slice(0, 20));
+    });
+
+    // Refresh every minute
+    const interval = setInterval(fetchSecurityData, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleBlockIP = async (id: number) => {
+    const threat = threats.find(t => t.id === id);
+    if (!threat) return;
+
+    try {
+      // Send block IP command via WebSocket
+      wsService.send({
+        type: 'tool_request',
+        tool: 'security',
+        action: 'block_ip',
+        args: { ip: threat.ip }
+      });
+
+      // Optimistic update
+      setThreats(threats.map(t => 
+        t.id === id ? { ...t, blocked: true } : t
+      ));
+    } catch (error) {
+      console.error('Failed to block IP:', error);
+    }
   };
 
   const getSeverityColor = (severity: string) => {
@@ -46,12 +110,22 @@ export const SecurityPanel = () => {
     }
   };
 
-  const securityStats = {
-    totalThreats: 147,
-    blockedIPs: 23,
-    activeSessions: 8,
-    failedLogins: 5,
-  };
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold flex items-center space-x-2">
+            <Shield className="w-7 h-7 text-neon-cyan" />
+            <span>Security Operations</span>
+          </h1>
+        </div>
+        <div className="text-center py-12">
+          <div className="animate-spin w-8 h-8 border-2 border-neon-cyan border-t-transparent rounded-full mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading security data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -62,7 +136,9 @@ export const SecurityPanel = () => {
         </h1>
         <div className="flex items-center space-x-2">
           <span className="text-sm text-muted-foreground">Last scan:</span>
-          <span className="text-sm jarvis-mono jarvis-status-online">14:25:33</span>
+          <span className="text-sm jarvis-mono jarvis-status-online">
+            {new Date().toLocaleTimeString('en-GB', { hour12: false })}
+          </span>
         </div>
       </div>
 
@@ -127,45 +203,52 @@ export const SecurityPanel = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {threats.map((threat) => (
-              <div
-                key={threat.id}
-                className="flex items-center justify-between p-4 rounded-lg border border-border/30 bg-surface/30"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className={`w-3 h-3 rounded-full ${getSeverityColor(threat.severity)} bg-current animate-pulse`} />
-                  <div>
-                    <p className="font-medium jarvis-mono">{threat.ip}</p>
-                    <p className="text-sm text-muted-foreground">{threat.type}</p>
-                  </div>
-                  <div className="text-sm text-muted-foreground jarvis-mono">
-                    {threat.timestamp}
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  {threat.blocked ? (
-                    <div className="flex items-center space-x-1 text-neon-red">
-                      <Ban className="w-4 h-4" />
-                      <span className="text-sm">Blocked</span>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => handleBlockIP(threat.id)}
-                      className="jarvis-button ghost"
-                      size="sm"
-                    >
-                      <Ban className="w-4 h-4 mr-1" />
-                      Block IP
-                    </Button>
-                  )}
-                  
-                  <span className={`text-xs px-2 py-1 rounded ${getSeverityColor(threat.severity)} bg-current/10`}>
-                    {threat.severity.toUpperCase()}
-                  </span>
-                </div>
+            {threats.length === 0 ? (
+              <div className="text-center py-8">
+                <ShieldCheck className="w-12 h-12 text-neon-green mx-auto mb-4" />
+                <p className="text-muted-foreground">No active threats detected</p>
               </div>
-            ))}
+            ) : (
+              threats.map((threat) => (
+                <div
+                  key={threat.id}
+                  className="flex items-center justify-between p-4 rounded-lg border border-border/30 bg-surface/30"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-3 h-3 rounded-full ${getSeverityColor(threat.severity)} bg-current animate-pulse`} />
+                    <div>
+                      <p className="font-medium jarvis-mono">{threat.ip}</p>
+                      <p className="text-sm text-muted-foreground">{threat.type}</p>
+                    </div>
+                    <div className="text-sm text-muted-foreground jarvis-mono">
+                      {threat.timestamp}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    {threat.blocked ? (
+                      <div className="flex items-center space-x-1 text-neon-red">
+                        <Ban className="w-4 h-4" />
+                        <span className="text-sm">Blocked</span>
+                      </div>
+                    ) : (
+                      <Button
+                        onClick={() => handleBlockIP(threat.id)}
+                        className="jarvis-button ghost"
+                        size="sm"
+                      >
+                        <Ban className="w-4 h-4 mr-1" />
+                        Block IP
+                      </Button>
+                    )}
+                    
+                    <span className={`text-xs px-2 py-1 rounded ${getSeverityColor(threat.severity)} bg-current/10`}>
+                      {threat.severity.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

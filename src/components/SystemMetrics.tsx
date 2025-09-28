@@ -1,23 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { Cpu, HardDrive, Zap, Thermometer } from 'lucide-react';
+import { apiService, wsService } from '@/lib/api';
 
 export const SystemMetrics = () => {
   const [metrics, setMetrics] = useState({
-    cpu: 23,
-    memory: 67,
-    disk: 45,
-    temp: 42,
+    cpu: 0,
+    memory: 0,
+    disk: 0,
+    temp: 0,
   });
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    // Fetch initial metrics
+    const fetchMetrics = async () => {
+      try {
+        const data = await apiService.getSystemMetrics();
+        setMetrics({
+          cpu: data.cpu || 0,
+          memory: data.memory || 0,
+          disk: data.disk || 0,
+          temp: data.temperature || 0,
+        });
+      } catch (error) {
+        console.error('Failed to fetch system metrics:', error);
+      }
+    };
+
+    fetchMetrics();
+
+    // Listen for real-time updates via WebSocket
+    wsService.on('system_metrics', (data: any) => {
       setMetrics({
-        cpu: Math.floor(Math.random() * 40) + 15,
-        memory: Math.floor(Math.random() * 30) + 60,
-        disk: Math.floor(Math.random() * 20) + 40,
-        temp: Math.floor(Math.random() * 10) + 35,
+        cpu: data.cpu || 0,
+        memory: data.memory || 0,
+        disk: data.disk || 0,
+        temp: data.temperature || 0,
       });
-    }, 3000);
+    });
+
+    // Fallback polling every 10 seconds
+    const interval = setInterval(fetchMetrics, 10000);
 
     return () => clearInterval(interval);
   }, []);

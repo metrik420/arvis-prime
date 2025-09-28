@@ -1,59 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, Lightbulb, Thermometer, Lock, Shield, Volume2, Tv, Coffee } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { apiService, wsService } from '@/lib/api';
 
 export const HomeAssistantPanel = () => {
-  const [devices, setDevices] = useState([
-    {
-      id: 'living_room_lights',
-      name: 'Living Room Lights',
-      type: 'light',
-      state: true,
-      brightness: 80,
-      icon: Lightbulb,
-    },
-    {
-      id: 'thermostat',
-      name: 'Main Thermostat',
-      type: 'climate',
-      state: true,
-      temperature: 22,
-      target: 21,
-      icon: Thermometer,
-    },
-    {
-      id: 'front_door',
-      name: 'Front Door Lock',
-      type: 'lock',
-      state: false,
-      icon: Lock,
-    },
-    {
-      id: 'security_system',
-      name: 'Security System',
-      type: 'alarm',
-      state: true,
-      mode: 'armed_home',
-      icon: Shield,
-    },
-    {
-      id: 'living_room_tv',
-      name: 'Living Room TV',
-      type: 'media',
-      state: false,
-      icon: Tv,
-    },
-    {
-      id: 'coffee_maker',
-      name: 'Coffee Maker',
-      type: 'switch',
-      state: false,
-      icon: Coffee,
-    },
-  ]);
-
+  const [devices, setDevices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [scenes] = useState([
     { id: 'night_mode', name: 'Night Mode', description: 'Dim lights, arm security, lock doors' },
     { id: 'movie_night', name: 'Movie Night', description: 'Dim lights, turn on TV, close blinds' },
@@ -61,36 +15,151 @@ export const HomeAssistantPanel = () => {
     { id: 'away_mode', name: 'Away Mode', description: 'Turn off lights, arm security, lock all doors' },
   ]);
 
-  const toggleDevice = (deviceId: string) => {
-    setDevices(devices.map(device => 
-      device.id === deviceId ? { ...device, state: !device.state } : device
-    ));
+  useEffect(() => {
+    // Fetch Home Assistant entities
+    const fetchEntities = async () => {
+      try {
+        const response = await apiService.getEntities();
+        if (response.success && response.data) {
+          setDevices(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch Home Assistant entities:', error);
+        // Fallback to mock data if API fails
+        setDevices([
+          {
+            entity_id: 'light.living_room',
+            friendly_name: 'Living Room Lights',
+            state: 'on',
+            domain: 'light',
+            attributes: { brightness: 80 }
+          },
+          {
+            entity_id: 'climate.thermostat',
+            friendly_name: 'Main Thermostat',
+            state: 'heat',
+            domain: 'climate',
+            attributes: { current_temperature: 22, temperature: 21 }
+          },
+          {
+            entity_id: 'lock.front_door',
+            friendly_name: 'Front Door Lock',
+            state: 'locked',
+            domain: 'lock'
+          }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEntities();
+
+    // Listen for Home Assistant state changes
+    wsService.on('homeassistant_state', (data: any) => {
+      setDevices(prevDevices => 
+        prevDevices.map(device => 
+          device.entity_id === data.entity_id 
+            ? { ...device, state: data.state, attributes: { ...device.attributes, ...data.attributes } }
+            : device
+        )
+      );
+    });
+  }, []);
+
+  const toggleDevice = async (entityId: string) => {
+    const device = devices.find(d => d.entity_id === entityId);
+    if (!device) return;
+
+    try {
+      const isCurrentlyOn = device.state === 'on' || device.state === 'unlocked';
+      
+      if (isCurrentlyOn) {
+        await apiService.turnOff(entityId);
+      } else {
+        await apiService.turnOn(entityId);
+      }
+      
+      // Optimistic update
+      setDevices(devices.map(d => 
+        d.entity_id === entityId 
+          ? { ...d, state: isCurrentlyOn ? 'off' : 'on' }
+          : d
+      ));
+    } catch (error) {
+      console.error('Failed to toggle device:', error);
+    }
   };
 
-  const executeScene = (sceneId: string) => {
-    // Mock scene execution
-    console.log(`Executing scene: ${sceneId}`);
+  const executeScene = async (sceneId: string) => {
+    try {
+      // Send scene execution command via WebSocket
+      wsService.send({
+        type: 'tool_request',
+        tool: 'homeassistant',
+        action: 'call_service',
+        args: {
+          domain: 'scene',
+          service: 'turn_on',
+          serviceData: { entity_id: `scene.${sceneId}` }
+        }
+      });
+    } catch (error) {
+      console.error('Failed to execute scene:', error);
+    }
+  };
+
+  const getDeviceIcon = (domain: string) => {
+    switch (domain) {
+      case 'light': return Lightbulb;
+      case 'climate': return Thermometer;
+      case 'lock': return Lock;
+      case 'alarm_control_panel': return Shield;
+      case 'media_player': return Tv;
+      case 'switch': return Coffee;
+      default: return Home;
+    }
   };
 
   const getDeviceStatus = (device: any) => {
-    if (device.type === 'climate') {
-      return `${device.temperature}°C → ${device.target}°C`;
+    if (device.domain === 'climate') {
+      return `${device.attributes?.current_temperature || 0}°C → ${device.attributes?.temperature || 0}°C`;
     }
-    if (device.type === 'alarm') {
-      return device.mode.replace('_', ' ').toUpperCase();
+    if (device.domain === 'alarm_control_panel') {
+      return device.state.replace('_', ' ').toUpperCase();
     }
-    return device.state ? 'ON' : 'OFF';
+    if (device.domain === 'lock') {
+      return device.state === 'locked' ? 'LOCKED' : 'UNLOCKED';
+    }
+    return device.state?.toUpperCase() || 'UNKNOWN';
   };
 
   const getStatusColor = (device: any) => {
-    if (device.type === 'lock') {
-      return device.state ? 'jarvis-status-critical' : 'jarvis-status-online';
+    if (device.domain === 'lock') {
+      return device.state === 'locked' ? 'jarvis-status-online' : 'jarvis-status-critical';
     }
-    if (device.type === 'alarm') {
-      return device.state ? 'jarvis-status-warning' : 'jarvis-status-critical';
+    if (device.domain === 'alarm_control_panel') {
+      return device.state.includes('armed') ? 'jarvis-status-warning' : 'jarvis-status-critical';
     }
-    return device.state ? 'jarvis-status-online' : 'text-muted-foreground';
+    return device.state === 'on' ? 'jarvis-status-online' : 'text-muted-foreground';
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold flex items-center space-x-2">
+            <Home className="w-7 h-7 text-neon-cyan" />
+            <span>Home Assistant</span>
+          </h1>
+        </div>
+        <div className="text-center py-12">
+          <div className="animate-spin w-8 h-8 border-2 border-neon-cyan border-t-transparent rounded-full mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading devices...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -132,18 +201,20 @@ export const HomeAssistantPanel = () => {
       {/* Device Controls */}
       <div className="jarvis-grid">
         {devices.map((device) => {
-          const Icon = device.icon;
+          const Icon = getDeviceIcon(device.domain);
+          const isOn = device.state === 'on' || device.state === 'unlocked';
+          
           return (
-            <Card key={device.id} className="jarvis-panel hover-scale">
+            <Card key={device.entity_id} className="jarvis-panel hover-scale">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Icon className="w-5 h-5 text-neon-cyan" />
-                    <span className="text-base">{device.name}</span>
+                    <span className="text-base">{device.friendly_name || device.entity_id}</span>
                   </div>
                   <Switch
-                    checked={device.state}
-                    onCheckedChange={() => toggleDevice(device.id)}
+                    checked={isOn}
+                    onCheckedChange={() => toggleDevice(device.entity_id)}
                   />
                 </CardTitle>
               </CardHeader>
@@ -156,18 +227,18 @@ export const HomeAssistantPanel = () => {
                     </span>
                   </div>
                   
-                  {device.type === 'light' && device.brightness && (
+                  {device.domain === 'light' && device.attributes?.brightness && (
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Brightness</span>
-                      <span className="text-sm jarvis-mono">{device.brightness}%</span>
+                      <span className="text-sm jarvis-mono">{device.attributes.brightness}%</span>
                     </div>
                   )}
                   
-                  {device.type === 'climate' && (
+                  {device.domain === 'climate' && (
                     <div className="w-full h-2 bg-surface-elevated rounded-full overflow-hidden">
                       <div
                         className="h-full bg-neon-cyan transition-all duration-300"
-                        style={{ width: `${(device.temperature / 30) * 100}%` }}
+                        style={{ width: `${(device.attributes?.current_temperature / 30) * 100}%` }}
                       />
                     </div>
                   )}

@@ -10,22 +10,56 @@ import { SystemMetrics } from '@/components/SystemMetrics';
 import { SecurityPanel } from '@/components/SecurityPanel';
 import { HomeAssistantPanel } from '@/components/HomeAssistantPanel';
 import { ConsolePanel } from '@/components/ConsolePanel';
+import { DockerPanel } from '@/components/DockerPanel';
+import { wsService, apiService } from '@/lib/api';
 
 const JarvisHUD = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [activePanel, setActivePanel] = useState('console');
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(false);
 
-  // Mock voice interaction
+  // Connect to WebSocket on component mount
+  useEffect(() => {
+    wsService.connect();
+
+    wsService.on('connected', () => {
+      setIsOnline(true);
+    });
+
+    wsService.on('disconnected', () => {
+      setIsOnline(false);
+    });
+
+    return () => {
+      wsService.disconnect();
+    };
+  }, []);
+
+  // Real voice interaction
   const toggleListening = () => {
+    if (!isOnline) return;
+    
     setIsListening(!isListening);
-    // Simulate voice detection
+    
     if (!isListening) {
-      setTimeout(() => {
+      // Send voice input start message
+      wsService.send({
+        type: 'voice_input',
+        action: 'start_listening'
+      });
+      
+      // Listen for voice events
+      wsService.on('voice_transcript', (data: any) => {
         setIsSpeaking(true);
-        setTimeout(() => setIsSpeaking(false), 3000);
-      }, 2000);
+        setTimeout(() => setIsSpeaking(false), 2000);
+      });
+    } else {
+      // Stop listening
+      wsService.send({
+        type: 'voice_input', 
+        action: 'stop_listening'
+      });
     }
   };
 
@@ -115,37 +149,7 @@ const JarvisHUD = () => {
             <div className="flex-1 p-6 overflow-y-auto">
               {activePanel === 'console' && <ConsolePanel />}
               {activePanel === 'home' && <HomeAssistantPanel />}
-              {activePanel === 'servers' && (
-                <div className="space-y-6">
-                  <h1 className="text-2xl font-bold">Server Management</h1>
-                  <div className="jarvis-grid">
-                    <Card className="jarvis-panel hover-scale">
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <Server className="w-5 h-5 text-neon-green" />
-                          <span>Docker Containers</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span>Plex</span>
-                            <span className="jarvis-status-online">Running</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Home Assistant</span>
-                            <span className="jarvis-status-online">Running</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>NPM</span>
-                            <span className="jarvis-status-warning">Updating</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              )}
+              {activePanel === 'servers' && <DockerPanel />}
               {activePanel === 'security' && <SecurityPanel />}
             </div>
 

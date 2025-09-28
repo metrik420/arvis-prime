@@ -53,23 +53,64 @@ export const ConsolePanel = () => {
   const [currentTranscript, setCurrentTranscript] = useState('Listening...');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Mock real-time updates
+  // Real-time updates from WebSocket
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (Math.random() > 0.8) {
-        const newLog: LogEntry = {
-          id: Date.now().toString(),
-          timestamp: new Date().toLocaleTimeString('en-GB', { hour12: false }),
-          type: Math.random() > 0.5 ? 'result' : 'tool_call',
-          content: Math.random() > 0.5 
-            ? 'System health check completed'
-            : 'docker_engine.status()',
-        };
-        setLogs(prev => [newLog, ...prev].slice(0, 20));
-      }
-    }, 5000);
+    const { wsService } = require('@/lib/api');
 
-    return () => clearInterval(interval);
+    // Listen for various event types
+    wsService.on('transcript', (data: any) => {
+      const newLog: LogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+        type: 'transcript',
+        content: data.transcript || data.content,
+      };
+      setLogs(prev => [newLog, ...prev].slice(0, 50));
+    });
+
+    wsService.on('intent', (data: any) => {
+      const newLog: LogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+        type: 'intent',
+        content: data.intent || data.content,
+      };
+      setLogs(prev => [newLog, ...prev].slice(0, 50));
+    });
+
+    wsService.on('tool_call', (data: any) => {
+      const newLog: LogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+        type: 'tool_call',
+        content: data.tool || data.content,
+      };
+      setLogs(prev => [newLog, ...prev].slice(0, 50));
+    });
+
+    wsService.on('result', (data: any) => {
+      const newLog: LogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+        type: 'result',
+        content: data.result || data.content,
+      };
+      setLogs(prev => [newLog, ...prev].slice(0, 50));
+    });
+
+    wsService.on('error', (data: any) => {
+      const newLog: LogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+        type: 'error',
+        content: data.error || data.message || 'Unknown error',
+      };
+      setLogs(prev => [newLog, ...prev].slice(0, 50));
+    });
+
+    return () => {
+      // Cleanup if needed
+    };
   }, []);
 
   const getLogIcon = (type: string) => {
