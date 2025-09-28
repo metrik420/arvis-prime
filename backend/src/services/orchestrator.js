@@ -604,6 +604,13 @@ class Orchestrator {
       return; // Already started
     }
     
+    // Check if config is loaded, if not retry after 1 second
+    if (!this.config) {
+      this.logger.warn('Config not loaded yet, retrying system monitoring in 1 second');
+      setTimeout(() => this.startSystemMonitoring(), 1000);
+      return;
+    }
+    
     const interval = this.config.system?.metrics_interval || 5000;
     
     this.systemMonitoringInterval = setInterval(async () => {
