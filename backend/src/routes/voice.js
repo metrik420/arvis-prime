@@ -4,8 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const router = express.Router();
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '../../uploads/audio');
+// Use temp directory as fallback for uploads
+const uploadsDir = '/tmp/jarvis-uploads';
 try {
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true, mode: 0o755 });
