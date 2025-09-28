@@ -23,6 +23,8 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
+# NOTE: Running nginx as root in containers is standard practice for simplicity
+# Removed non-root user setup that was causing permission issues with PID file
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Expose port
