@@ -1,0 +1,53 @@
+# Jarvis Backend Environment Configuration
+
+# Server Configuration
+NODE_ENV=development
+PORT=3001
+FRONTEND_URL=http://localhost:8080
+
+# Security
+JWT_SECRET=your-super-secret-jwt-key-here
+PIN_SALT=your-pin-salt-here
+
+# Home Assistant Integration
+HA_URL=http://homeassistant.local:8123
+HA_TOKEN=your-home-assistant-long-lived-token
+
+# Docker Integration
+DOCKER_SOCKET=/var/run/docker.sock
+
+# Nginx Proxy Manager
+NPM_URL=http://npm.local:81
+NPM_TOKEN=your-npm-api-token
+
+# Plex Integration
+PLEX_URL=http://plex.local:32400
+PLEX_TOKEN=your-plex-token
+
+# Security & Notifications
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+DISCORD_WEBHOOK=your-discord-webhook-url
+
+# Voice Processing
+VOICE_MODEL_PATH=./models
+OPENAI_API_KEY=your-openai-key-for-fallback
+
+# Database
+REDIS_URL=redis://localhost:6379
+SQLITE_PATH=./data/jarvis.db
+
+# Router/Network Management
+ASUS_ROUTER_HOST=192.168.1.1
+ASUS_ROUTER_USER=admin
+ASUS_ROUTER_PASS=your-router-password
+
+# WireGuard
+WG_CONFIG_PATH=/etc/wireguard
+
+# System Monitoring
+ENABLE_GPU_MONITORING=true
+SYSTEM_METRICS_INTERVAL=5000
+
+# Logging
+LOG_LEVEL=info
+LOG_FILE=./logs/jarvis.log
