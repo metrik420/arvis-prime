@@ -22,7 +22,7 @@ RUN npm ci --silent
 COPY backend/ .
 
 # Create necessary directories
-RUN mkdir -p data logs models config
+RUN mkdir -p data logs models config uploads/audio
 
 # Production stage optimized for Pi
 FROM arm64v8/node:18-alpine AS production
@@ -51,8 +51,11 @@ COPY --from=builder --chown=jarvis:nodejs /app/logs ./logs
 COPY --from=builder --chown=jarvis:nodejs /app/models ./models
 COPY --from=builder --chown=jarvis:nodejs /app/config ./config
 
+# Create uploads directory with proper permissions
+RUN mkdir -p /app/uploads/audio && chown -R jarvis:nodejs /app/uploads
+
 # Create volume mount points
-VOLUME ["/app/data", "/app/logs", "/app/models"]
+VOLUME ["/app/data", "/app/logs", "/app/models", "/app/uploads"]
 
 # Switch to non-root user
 USER jarvis
