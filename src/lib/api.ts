@@ -3,7 +3,7 @@ const WS_URL = 'ws://raspberrypi.local:3001/ws';
 
 export class WebSocketService {
   private ws: WebSocket | null = null;
-  private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private eventCallbacks: { [event: string]: Function[] } = {};
 
   connect() {

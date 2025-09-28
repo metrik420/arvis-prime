@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Terminal, Brain, CheckCircle, AlertCircle, Clock, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { wsService } from '@/lib/api';
 
 interface LogEntry {
   id: string;
@@ -55,8 +56,6 @@ export const ConsolePanel = () => {
 
   // Real-time updates from WebSocket
   useEffect(() => {
-    const { wsService } = require('@/lib/api');
-
     // Listen for various event types
     wsService.on('transcript', (data: any) => {
       const newLog: LogEntry = {
