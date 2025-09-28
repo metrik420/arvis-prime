@@ -13,6 +13,8 @@ const SecuritySkill = require('../skills/security');
 const VoiceSkill = require('../skills/voice');
 const MediaSkill = require('../skills/media');
 const SystemSkill = require('../skills/system');
+const NetworkDiscoverySkill = require('../skills/network-discovery');
+const DeviceManagerSkill = require('../skills/device-manager');
 
 class Orchestrator {
   constructor(wsManager, logger) {
@@ -117,7 +119,9 @@ class Orchestrator {
         security: new SecuritySkill(this.config.security, this.logger),
         voice: new VoiceSkill(this.config.voice, this.logger),
         media: new MediaSkill(this.config.media, this.logger),
-        system: new SystemSkill(this.config.system, this.logger)
+        system: new SystemSkill(this.config.system, this.logger),
+        network: new NetworkDiscoverySkill(this.config.network, this.logger),
+        devices: new DeviceManagerSkill(this.config.devices, this.logger)
       };
       
       this.logger.info('Skills initialized:', Object.keys(this.skills));
@@ -203,29 +207,68 @@ class Orchestrator {
   async extractIntent(transcript) {
     const text = transcript.toLowerCase().trim();
     
-    // Enhanced intent recognition with better pattern matching
-    const intentPatterns = {
-      // Home Assistant patterns
-      lights: {
-        patterns: [/turn (on|off) (?:the )?(.+?) light/i, /(light|lights) (on|off)/i],
-        handler: (matches) => ({
-          tool: 'homeassistant',
-          action: matches[1] === 'on' ? 'turn_on' : 'turn_off',
-          args: { entity_type: 'light', entity: matches[2] || 'all' },
-          confidence: 0.9
-        })
-      },
-      
-      // System monitoring
-      status: {
-        patterns: [/(status|health) (?:of )?(.+)/i, /how (?:is|are) (.+)/i],
-        handler: (matches) => {
-          if (matches[2]?.includes('container') || matches[2]?.includes('docker')) {
-            return { tool: 'docker', action: 'status', confidence: 0.85 };
+      // Enhanced intent recognition with better pattern matching
+      const intentPatterns = {
+        // Network discovery and device management
+        discovery: {
+          patterns: [/(scan|discover|find) (?:the )?network/i, /what (?:devices|things) are (?:on|connected)/i, /show (?:me )?(?:all )?devices/i],
+          handler: (matches) => ({
+            tool: 'network',
+            action: 'scan_network',
+            confidence: 0.95
+          })
+        },
+        
+        device_control: {
+          patterns: [/(turn|switch) (on|off) (?:the )?(.+)/i, /(control|operate) (?:the )?(.+)/i, /(dim|brighten) (?:the )?(.+)/i],
+          handler: (matches) => {
+            const action = matches[1].toLowerCase();
+            const command = matches[2]?.toLowerCase();
+            const deviceName = matches[3] || matches[2];
+            
+            return {
+              tool: 'devices',
+              action: 'control_device',
+              args: { deviceName: deviceName, command: command || action },
+              confidence: 0.9
+            };
           }
-          return { tool: 'system', action: 'status', confidence: 0.8 };
-        }
-      },
+        },
+
+        scene_activation: {
+          patterns: [/(activate|set|enable) (?:the )?(.+?) (?:scene|mode)/i, /(movie|night|work|away|home) (?:mode|time)/i],
+          handler: (matches) => ({
+            tool: 'devices',
+            action: 'activate_scene',
+            args: { scene: matches[2] || matches[1] },
+            confidence: 0.85
+          })
+        },
+        
+        // Home Assistant patterns
+        lights: {
+          patterns: [/turn (on|off) (?:the )?(.+?) light/i, /(light|lights) (on|off)/i],
+          handler: (matches) => ({
+            tool: 'homeassistant',
+            action: matches[1] === 'on' ? 'turn_on' : 'turn_off',
+            args: { entity_type: 'light', entity: matches[2] || 'all' },
+            confidence: 0.9
+          })
+        },
+        
+        // System monitoring
+        status: {
+          patterns: [/(status|health) (?:of )?(.+)/i, /how (?:is|are) (.+)/i, /show (?:me )?(?:the )?system (?:info|metrics)/i],
+          handler: (matches) => {
+            if (matches[2]?.includes('container') || matches[2]?.includes('docker')) {
+              return { tool: 'docker', action: 'status', confidence: 0.85 };
+            }
+            if (matches[2]?.includes('network') || matches[2]?.includes('devices')) {
+              return { tool: 'network', action: 'get_devices', confidence: 0.9 };
+            }
+            return { tool: 'system', action: 'get_metrics', confidence: 0.8 };
+          }
+        },
       
       // Security operations
       security: {

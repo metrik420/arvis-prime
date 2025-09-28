@@ -15,6 +15,8 @@ const dockerRoutes = require('./routes/docker');
 const securityRoutes = require('./routes/security');
 const systemRoutes = require('./routes/system');
 const mediaRoutes = require('./routes/media');
+const networkRoutes = require('./routes/network');
+const deviceRoutes = require('./routes/devices');
 
 // Import services
 const Orchestrator = require('./services/orchestrator');
@@ -97,6 +99,8 @@ app.use('/api/docker', dockerRoutes(logger));
 app.use('/api/security', securityRoutes(logger));
 app.use('/api/system', systemRoutes(logger));
 app.use('/api/media', mediaRoutes(logger));
+app.use('/api/network', networkRoutes(orchestrator, logger));
+app.use('/api/devices', deviceRoutes(orchestrator, logger));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -132,7 +136,9 @@ app.get('/api', (req, res) => {
       docker: '/api/docker/*',
       security: '/api/security/*',
       system: '/api/system/*',
-      media: '/api/media/*'
+      media: '/api/media/*',
+      network: '/api/network/*',
+      devices: '/api/devices/*'
     },
     documentation: 'https://github.com/yourusername/jarvis-hud/blob/main/backend/docs/API.md'
   });
