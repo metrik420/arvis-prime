@@ -1,0 +1,65 @@
+# Pi Skills Configuration
+# Optimized for Raspberry Pi 4 resource constraints
+
+homeassistant:
+  base_url: ${HA_URL}
+  token: ${HA_TOKEN}
+  timeout: 15000
+  retry_attempts: 3
+  enable_websocket: false  # Reduce connections on Pi
+
+docker:
+  socket: ${DOCKER_SOCKET}
+  api_version: "1.41"
+  timeout: 10000
+  stats_interval: 15000    # Slower stats collection
+
+security:
+  telegram_bot: ${TELEGRAM_BOT_TOKEN}
+  telegram_chat: ${TELEGRAM_CHAT_ID}
+  discord_webhook: ${DISCORD_WEBHOOK}
+  enable_ip_monitoring: true
+  scan_interval: 30000     # Less frequent scanning
+
+voice:
+  model_path: ${VOICE_MODEL_PATH}
+  engine: "piper"
+  voice_id: "en_GB-jenny_dioco-medium"
+  sample_rate: 22050       # Lower sample rate for Pi
+  chunk_size: 1024
+  enable_noise_reduction: false  # Save CPU
+  openai_fallback: ${OPENAI_API_KEY}
+
+media:
+  plex_url: ${PLEX_URL}
+  plex_token: ${PLEX_TOKEN}
+  enable_transcoding: false # Don't transcode on Pi
+  quality: "720p"          # Reasonable quality for Pi
+
+system:
+  metrics_interval: 10000
+  enable_gpu_monitoring: false
+  enable_temperature_monitoring: true
+  temperature_threshold: 70
+  cpu_threshold: 85
+  memory_threshold: 90
+  disk_threshold: 95
+  log_metrics: false       # Reduce I/O
+
+# Pi-specific skills
+raspberry_pi:
+  enable_gpio: ${ENABLE_GPIO}
+  gpio_led_pin: ${GPIO_PIN_LED}
+  gpio_button_pin: ${GPIO_PIN_BUTTON}
+  enable_i2c: ${ENABLE_I2C}
+  enable_spi: ${ENABLE_SPI}
+  monitor_throttling: ${MONITOR_THROTTLING}
+  cpu_temp_threshold: ${CPU_TEMP_THRESHOLD}
+
+# Network discovery
+network:
+  enable_mdns: ${ENABLE_MDNS}
+  hostname: ${HOSTNAME}
+  advertise_services: ${ADVERTISE_SERVICES}
+  scan_local_network: true
+  discovery_interval: 60000
