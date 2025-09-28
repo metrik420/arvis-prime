@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   jarvis-backend:
-    build: .
+    build: 
+      context: .
+      dockerfile: backend.Dockerfile
     container_name: jarvis-backend
     ports:
       - "3001:3001"
