@@ -93,12 +93,12 @@ const wsManager = new WebSocketManager(server, logger);
 const orchestrator = new Orchestrator(wsManager, logger);
 
 // API Routes
-app.use('/api/voice', voiceRoutes(orchestrator, logger));
-app.use('/api/home-assistant', homeAssistantRoutes(logger));
-app.use('/api/docker', dockerRoutes(logger));
-app.use('/api/security', securityRoutes(logger));
-app.use('/api/system', systemRoutes(logger));
-app.use('/api/media', mediaRoutes(logger));
+app.use('/api/voice', voiceRoutes);
+app.use('/api/home-assistant', homeAssistantRoutes);
+app.use('/api/docker', dockerRoutes);
+app.use('/api/security', securityRoutes);
+app.use('/api/system', systemRoutes);
+app.use('/api/media', mediaRoutes);
 app.use('/api/network', networkRoutes(orchestrator, logger));
 app.use('/api/devices', deviceRoutes(orchestrator, logger));
 
