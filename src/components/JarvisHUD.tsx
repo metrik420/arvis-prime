@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Mic, MicOff, Volume2, VolumeX, Power, Cpu, HardDrive, Shield, Home, Server, Brain, Settings } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Power, Cpu, HardDrive, Shield, Home, Server, Brain, Settings, Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HolographicRing } from '@/components/three/HolographicRing';
@@ -11,13 +11,14 @@ import { SecurityPanel } from '@/components/SecurityPanel';
 import { HomeAssistantPanel } from '@/components/HomeAssistantPanel';
 import { ConsolePanel } from '@/components/ConsolePanel';
 import { DockerPanel } from '@/components/DockerPanel';
+import { NetworkPanel } from '@/components/NetworkPanel';
 import SettingsPanel from '@/components/SettingsPanel';
 import { wsService, apiService } from '@/lib/api';
 
 const JarvisHUD = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [activePanel, setActivePanel] = useState('console');
+  const [activePanel, setActivePanel] = useState('network');
   const [isOnline, setIsOnline] = useState(false);
 
   // Connect to WebSocket on component mount
@@ -66,6 +67,7 @@ const JarvisHUD = () => {
 
   const navigationItems = [
     { id: 'console', label: 'Console', icon: Brain },
+    { id: 'network', label: 'Network', icon: Network },
     { id: 'home', label: 'Home', icon: Home },
     { id: 'servers', label: 'Servers', icon: Server },
     { id: 'security', label: 'Security', icon: Shield },
@@ -150,6 +152,7 @@ const JarvisHUD = () => {
             {/* Primary Panel */}
             <div className="flex-1 p-6 overflow-y-auto">
               {activePanel === 'console' && <ConsolePanel />}
+              {activePanel === 'network' && <NetworkPanel />}
               {activePanel === 'home' && <HomeAssistantPanel />}
               {activePanel === 'servers' && <DockerPanel />}
               {activePanel === 'security' && <SecurityPanel />}
