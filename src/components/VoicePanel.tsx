@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiService, wsService } from '@/lib/api';
 import { VoiceWaveform } from './VoiceWaveform';
+import { VoiceConversation } from './VoiceConversation';
 
 interface VoiceCommand {
   id: string;
@@ -264,6 +265,9 @@ export const VoicePanel = () => {
           </span>
         </div>
       </div>
+
+      {/* ElevenLabs Conversational AI */}
+      <VoiceConversation />
 
       {/* Main Voice Control */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
