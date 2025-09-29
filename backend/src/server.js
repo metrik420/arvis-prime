@@ -7,12 +7,14 @@ const rateLimit = require('express-rate-limit');
 const winston = require('winston');
 require('dotenv').config();
 
-// Import routes (only existing ones)
+// Import routes
 const systemRoutes = require('./routes/system');
 const dockerRoutes = require('./routes/docker');
 const homeassistantRoutes = require('./routes/homeassistant');
 const securityRoutes = require('./routes/security');
 const configRoutes = require('./routes/config');
+const networkRoutes = require('./routes/network');
+const voiceRoutes = require('./routes/voice');
 
 // Configure logger
 const logger = winston.createLogger({
@@ -160,6 +162,8 @@ app.use('/api/docker', dockerRoutes);
 app.use('/api/home-assistant', homeassistantRoutes);
 app.use('/api/security', securityRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/network', networkRoutes(logger));
+app.use('/api/voice', voiceRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
