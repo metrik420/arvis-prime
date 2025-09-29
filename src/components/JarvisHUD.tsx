@@ -12,6 +12,9 @@ import { HomeAssistantPanel } from '@/components/HomeAssistantPanel';
 import { ConsolePanel } from '@/components/ConsolePanel';
 import { DockerPanel } from '@/components/DockerPanel';
 import { NetworkPanel } from '@/components/NetworkPanel';
+import { EnhancedVoicePanel } from '@/components/EnhancedVoicePanel';
+import { EnhancedSecurityPanel } from '@/components/EnhancedSecurityPanel';
+import { EnhancedDockerPanel } from '@/components/EnhancedDockerPanel';
 import { MasterControlPanel } from '@/components/MasterControlPanel';
 import SettingsPanel from '@/components/SettingsPanel';
 import { wsService, apiService } from '@/lib/api';
@@ -69,6 +72,7 @@ const JarvisHUD = () => {
   const navigationItems = [
     { id: 'master', label: 'Master Control', icon: Brain },
     { id: 'network', label: 'Network', icon: Network },
+    { id: 'voice', label: 'Voice Assistant', icon: Mic },
     { id: 'home', label: 'Home Assistant', icon: Home },
     { id: 'servers', label: 'Docker', icon: Server },
     { id: 'security', label: 'Security', icon: Shield },
@@ -154,6 +158,7 @@ const JarvisHUD = () => {
             <div className="flex-1 p-6 overflow-y-auto">
               {activePanel === 'master' && <MasterControlPanel />}
               {activePanel === 'network' && <NetworkPanel />}
+              {activePanel === 'voice' && <EnhancedVoicePanel />}
               {activePanel === 'home' && <HomeAssistantPanel />}
               {activePanel === 'servers' && <DockerPanel />}
               {activePanel === 'security' && <SecurityPanel />}

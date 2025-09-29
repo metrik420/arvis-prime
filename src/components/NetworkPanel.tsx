@@ -11,12 +11,13 @@ import { NetworkControlPanel } from './NetworkControlPanel';
 interface NetworkDevice {
   ip: string;
   mac: string;
-  vendor: string;
   hostname?: string;
+  vendor?: string;
   type?: string;
-  status: 'online' | 'offline';
+  status: 'online' | 'offline' | 'unknown';
   ports?: number[];
   classification?: string;
+  services?: string[];
 }
 
 export const NetworkPanel = () => {
@@ -165,7 +166,7 @@ export const NetworkPanel = () => {
               <CardContent>
                 <Network3D 
                   devices={devices} 
-                  onDeviceClick={setSelectedDevice}
+                  onDeviceClick={(device) => setSelectedDevice(device)}
                   selectedDevice={selectedDevice}
                 />
               </CardContent>

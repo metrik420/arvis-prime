@@ -66,26 +66,10 @@ const DEMO_NETWORK_DEVICES = [
 ];
 
 const DEMO_SYSTEM_METRICS = {
-  cpu: {
-    usage: 45.2,
-    cores: 8,
-    temperature: 52
-  },
-  memory: {
-    used: 6.4,
-    total: 16.0,
-    usage: 40
-  },
-  storage: {
-    used: 250,
-    total: 500,
-    usage: 50
-  },
-  network: {
-    upload: 12.5,
-    download: 45.8
-  },
-  uptime: 259200
+  cpu: 45.2,
+  memory: 67.8,
+  disk: 82.1,
+  temperature: 52
 };
 
 export class WebSocketService {
