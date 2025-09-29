@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 interface VoiceWaveformProps {
   isActive: boolean;
+  audioLevel?: number;
 }
 
 export const VoiceWaveform: React.FC<VoiceWaveformProps> = ({ isActive }) => {

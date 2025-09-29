@@ -1,15 +1,20 @@
 const express = require('express');
 const router = express.Router();
 
-module.exports = (orchestrator, logger) => {
-  // Network discovery endpoints
+module.exports = (logger) => {
+  // Import the network skill
+  const NetworkSkill = require('../skills/network');
+  const networkSkill = new NetworkSkill({}, logger);
   
+  // Initialize the skill
+  networkSkill.initialize();
+
   // Scan network for devices
   router.post('/scan', async (req, res) => {
     try {
       const { subnet, timeout } = req.body;
       
-      const result = await orchestrator.skills.network.execute('scan_network', {
+      const result = await networkSkill.execute('scan_network', {
         subnet: subnet,
         timeout: timeout || 5000
       });
@@ -34,7 +39,7 @@ module.exports = (orchestrator, logger) => {
       if (vendor) filter.vendor = vendor;
       if (ip) filter.ip = ip;
       
-      const result = await orchestrator.skills.network.execute('get_devices', { filter });
+      const result = await networkSkill.execute('get_devices', { filter });
       
       res.json(result);
     } catch (error) {
@@ -51,7 +56,7 @@ module.exports = (orchestrator, logger) => {
     try {
       const { ip } = req.params;
       
-      const result = await orchestrator.skills.network.execute('get_device_info', { ip });
+      const result = await networkSkill.execute('get_device_info', { ip });
       
       res.json(result);
     } catch (error) {
@@ -68,7 +73,7 @@ module.exports = (orchestrator, logger) => {
     try {
       const { interval } = req.body;
       
-      const result = await orchestrator.skills.network.execute('start_monitoring', {
+      const result = await networkSkill.execute('start_monitoring', {
         interval: interval || 300000 // 5 minutes default
       });
       
@@ -85,7 +90,7 @@ module.exports = (orchestrator, logger) => {
   // Stop continuous monitoring
   router.post('/monitoring/stop', async (req, res) => {
     try {
-      const result = await orchestrator.skills.network.execute('stop_monitoring');
+      const result = await networkSkill.execute('stop_monitoring');
       
       res.json(result);
     } catch (error) {
@@ -100,7 +105,7 @@ module.exports = (orchestrator, logger) => {
   // Classify all devices
   router.post('/classify', async (req, res) => {
     try {
-      const result = await orchestrator.skills.network.execute('classify_devices');
+      const result = await networkSkill.execute('classify_devices');
       
       res.json(result);
     } catch (error) {
@@ -115,7 +120,7 @@ module.exports = (orchestrator, logger) => {
   // mDNS discovery
   router.post('/mdns', async (req, res) => {
     try {
-      const result = await orchestrator.skills.network.execute('mdns_scan');
+      const result = await networkSkill.execute('mdns_scan');
       
       res.json(result);
     } catch (error) {
@@ -130,7 +135,7 @@ module.exports = (orchestrator, logger) => {
   // UPnP discovery
   router.post('/upnp', async (req, res) => {
     try {
-      const result = await orchestrator.skills.network.execute('upnp_scan');
+      const result = await networkSkill.execute('upnp_scan');
       
       res.json(result);
     } catch (error) {

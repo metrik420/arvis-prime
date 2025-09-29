@@ -171,6 +171,58 @@ export const apiService = {
   async getSecurityStatus() {
     const response = await fetch(`${API_BASE_URL}/security/status`);
     return response.json();
+  },
+
+  // Network API
+  async scanNetwork(subnet?: string, timeout?: number) {
+    const response = await fetch(`${API_BASE_URL}/network/scan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subnet, timeout })
+    });
+    return response.json();
+  },
+
+  async getNetworkDevices(filter?: any) {
+    const params = new URLSearchParams(filter);
+    const response = await fetch(`${API_BASE_URL}/network/devices?${params}`);
+    return response.json();
+  },
+
+  async getDeviceInfo(ip: string) {
+    const response = await fetch(`${API_BASE_URL}/network/devices/${ip}`);
+    return response.json();
+  },
+
+  // Voice API
+  async transcribeAudio(audioBlob: Blob, wakeWord?: string) {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'voice_command.wav');
+    if (wakeWord) formData.append('wake_word', wakeWord);
+
+    const response = await fetch(`${API_BASE_URL}/voice/transcribe`, {
+      method: 'POST',
+      body: formData
+    });
+    return response.json();
+  },
+
+  async speakText(text: string, voice?: string, speed?: number) {
+    const response = await fetch(`${API_BASE_URL}/voice/speak`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voice, speed })
+    });
+    return response.json();
+  },
+
+  async processVoiceCommand(command: string) {
+    const response = await fetch(`${API_BASE_URL}/voice/command`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command })
+    });
+    return response.json();
   }
 };
 
