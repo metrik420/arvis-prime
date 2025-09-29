@@ -69,6 +69,36 @@ router.post('/containers/:id/stop', async (req, res) => {
   }
 });
 
+// Start container by name/id (for frontend API compatibility)
+router.post('/start', async (req, res) => {
+  try {
+    const { nameOrId } = req.body;
+    const container = docker.getContainer(nameOrId);
+    await container.start();
+    res.json({
+      success: true,
+      message: 'Container started'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Stop container by name/id (for frontend API compatibility)
+router.post('/stop', async (req, res) => {
+  try {
+    const { nameOrId } = req.body;
+    const container = docker.getContainer(nameOrId);
+    await container.stop();
+    res.json({
+      success: true,
+      message: 'Container stopped'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Restart container
 router.post('/containers/:id/restart', async (req, res) => {
   try {

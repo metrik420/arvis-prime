@@ -1,5 +1,5 @@
-const API_BASE_URL = 'http://raspberrypi.local:3001/api';
-const WS_URL = 'ws://raspberrypi.local:3001/ws';
+const API_BASE_URL = 'http://192.168.50.231:3001/api';
+const WS_URL = 'ws://192.168.50.231:3001/ws';
 
 export class WebSocketService {
   private ws: WebSocket | null = null;

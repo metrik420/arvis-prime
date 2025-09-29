@@ -53,67 +53,29 @@ router.get('/info', async (req, res) => {
   }
 });
 
-// Get real-time metrics
+// Get real-time metrics (simplified for frontend)
 router.get('/metrics', async (req, res) => {
   try {
-    const [currentLoad, mem, disks, networkStats, temp] = await Promise.all([
+    const [currentLoad, mem, disks, temp] = await Promise.all([
       si.currentLoad(),
       si.mem(),
       si.fsSize(),
-      si.networkStats(),
       si.cpuTemperature()
     ]);
 
+    // Calculate average disk usage
+    const totalSize = disks.reduce((acc, disk) => acc + disk.size, 0);
+    const totalUsed = disks.reduce((acc, disk) => acc + disk.used, 0);
+    const avgDiskUsage = totalSize > 0 ? ((totalUsed / totalSize) * 100) : 0;
+
     res.json({
-      success: true,
-      metrics: {
-        cpu: {
-          usage: currentLoad.currentload,
-          loadAvg: currentLoad.avgload,
-          cores: currentLoad.cpus.map(core => ({
-            usage: core.load,
-            loadUser: core.loaduser,
-            loadSystem: core.loadsystem
-          }))
-        },
-        memory: {
-          total: mem.total,
-          free: mem.free,
-          used: mem.used,
-          usedPercent: ((mem.used / mem.total) * 100).toFixed(1),
-          cached: mem.cached,
-          buffers: mem.buffers
-        },
-        disk: disks.map(disk => ({
-          fs: disk.fs,
-          type: disk.type,
-          size: disk.size,
-          used: disk.used,
-          available: disk.available,
-          usedPercent: ((disk.used / disk.size) * 100).toFixed(1),
-          mount: disk.mount
-        })),
-        network: networkStats.map(net => ({
-          iface: net.iface,
-          operstate: net.operstate,
-          rx_bytes: net.rx_bytes,
-          rx_dropped: net.rx_dropped,
-          rx_errors: net.rx_errors,
-          tx_bytes: net.tx_bytes,
-          tx_dropped: net.tx_dropped,
-          tx_errors: net.tx_errors,
-          rx_sec: net.rx_sec,
-          tx_sec: net.tx_sec
-        })),
-        temperature: {
-          main: temp.main,
-          cores: temp.cores,
-          max: temp.max
-        },
-        timestamp: new Date().toISOString()
-      }
+      cpu: Math.round(currentLoad.currentload || 0),
+      memory: Math.round(((mem.used / mem.total) * 100) || 0),
+      disk: Math.round(avgDiskUsage),
+      temperature: Math.round(temp.main || 0)
     });
   } catch (error) {
+    console.error('Metrics error:', error);
     res.status(500).json({ error: error.message });
   }
 });

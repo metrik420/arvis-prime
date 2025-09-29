@@ -106,6 +106,61 @@ router.get('/network/connections', async (req, res) => {
   }
 });
 
+// Get security status (for frontend API compatibility)
+router.get('/status', async (req, res) => {
+  try {
+    const status = {
+      timestamp: new Date().toISOString(),
+      overall: 'SECURE',
+      threats: 0,
+      checks: []
+    };
+
+    // Check firewall status
+    try {
+      const { stdout } = await execAsync('ufw status');
+      const isActive = stdout.includes('Status: active');
+      status.checks.push({
+        name: 'Firewall',
+        status: isActive ? 'PASS' : 'WARN',
+        details: isActive ? 'Active' : 'Inactive'
+      });
+      if (!isActive) status.threats++;
+    } catch (e) {
+      status.checks.push({
+        name: 'Firewall',
+        status: 'ERROR',
+        details: 'Unable to check status'
+      });
+      status.threats++;
+    }
+
+    // Check for banned IPs
+    try {
+      const { stdout } = await execAsync('fail2ban-client status sshd');
+      const bannedMatch = stdout.match(/Currently banned:\s*(\d+)/);
+      const bannedCount = bannedMatch ? parseInt(bannedMatch[1]) : 0;
+      status.checks.push({
+        name: 'Fail2ban',
+        status: 'PASS',
+        details: `${bannedCount} IPs banned`
+      });
+    } catch (e) {
+      status.checks.push({
+        name: 'Fail2ban',
+        status: 'WARN',
+        details: 'Not available'
+      });
+    }
+
+    status.overall = status.threats > 0 ? 'ALERT' : 'SECURE';
+
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Security audit
 router.post('/audit', async (req, res) => {
   try {

@@ -5,26 +5,31 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const winston = require('winston');
-const path = require('path');
 require('dotenv').config();
 
-// Import routes
-const voiceRoutes = require('./routes/voice');
-const homeAssistantRoutes = require('./routes/homeassistant');
-const dockerRoutes = require('./routes/docker');
-const securityRoutes = require('./routes/security');
+// Import routes (only existing ones)
 const systemRoutes = require('./routes/system');
-const mediaRoutes = require('./routes/media');
-const networkRoutes = require('./routes/network');
-const deviceRoutes = require('./routes/devices');
-
-// Import services
-const Orchestrator = require('./services/orchestrator');
-const WebSocketManager = require('./websocket/manager');
-const { setupLogging } = require('./utils/logger');
+const dockerRoutes = require('./routes/docker');
+const homeassistantRoutes = require('./routes/homeassistant');
+const securityRoutes = require('./routes/security');
 
 // Configure logger
-const logger = setupLogging();
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    })
+  ]
+});
 
 // Initialize Express app
 const app = express();
@@ -49,6 +54,7 @@ const allowedOrigins = [
   'http://localhost:8080',
   'http://192.168.50.231:8080',
   'http://raspberrypi.local:8080',
+  'https://fba3e274-5b41-4dc3-b45a-89c9d596bf0f.lovableproject.com',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -60,7 +66,8 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      logger.warn(`CORS blocked origin: ${origin}`);
+      callback(null, true); // Allow all origins for development
     }
   },
   credentials: true,
@@ -102,21 +109,55 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize WebSocket Manager
-const wsManager = new WebSocketManager(server, logger);
+// Initialize WebSocket server
+const wss = new WebSocket.Server({ 
+  server,
+  path: '/ws'
+});
 
-// Initialize Orchestrator
-const orchestrator = new Orchestrator(wsManager, logger);
+// WebSocket connection handling
+wss.on('connection', (ws, req) => {
+  const clientId = Math.random().toString(36).substring(7);
+  logger.info(`WebSocket client connected: ${clientId}`);
+
+  ws.on('message', (message) => {
+    try {
+      const data = JSON.parse(message);
+      logger.info(`WebSocket message from ${clientId}:`, data);
+      
+      // Echo back for now
+      ws.send(JSON.stringify({
+        type: 'response',
+        clientId: clientId,
+        timestamp: new Date().toISOString(),
+        data: data
+      }));
+    } catch (error) {
+      logger.error('WebSocket message parse error:', error);
+    }
+  });
+
+  ws.on('close', () => {
+    logger.info(`WebSocket client disconnected: ${clientId}`);
+  });
+
+  ws.on('error', (error) => {
+    logger.error(`WebSocket error for client ${clientId}:`, error);
+  });
+
+  // Send welcome message
+  ws.send(JSON.stringify({
+    type: 'connected',
+    clientId: clientId,
+    message: 'Welcome to Jarvis Backend'
+  }));
+});
 
 // API Routes
-app.use('/api/voice', voiceRoutes);
-app.use('/api/home-assistant', homeAssistantRoutes);
-app.use('/api/docker', dockerRoutes);
-app.use('/api/security', securityRoutes);
 app.use('/api/system', systemRoutes);
-app.use('/api/media', mediaRoutes);
-app.use('/api/network', networkRoutes(orchestrator, logger));
-app.use('/api/devices', deviceRoutes(orchestrator, logger));
+app.use('/api/docker', dockerRoutes);
+app.use('/api/home-assistant', homeassistantRoutes);
+app.use('/api/security', securityRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -125,13 +166,11 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage(),
-    version: process.env.npm_package_version || '1.0.0',
+    version: '1.0.0',
     environment: process.env.NODE_ENV || 'development',
     services: {
-      websocket: wsManager.getConnectedClients().length > 0 ? 'connected' : 'waiting',
-      orchestrator: 'running',
-      redis: 'checking', // Will be updated by health checks
-      database: 'checking'
+      websocket: 'running',
+      api: 'running'
     }
   };
   
@@ -142,21 +181,16 @@ app.get('/health', (req, res) => {
 app.get('/api', (req, res) => {
   res.json({
     name: 'Jarvis Backend API',
-    version: process.env.npm_package_version || '1.0.0',
+    version: '1.0.0',
     description: 'AI Assistant Backend with IoT Integration',
     endpoints: {
       websocket: 'ws://localhost:3001/ws',
       health: '/health',
-      voice: '/api/voice/*',
-      homeAssistant: '/api/home-assistant/*',
-      docker: '/api/docker/*',
-      security: '/api/security/*',
       system: '/api/system/*',
-      media: '/api/media/*',
-      network: '/api/network/*',
-      devices: '/api/devices/*'
-    },
-    documentation: 'https://github.com/yourusername/jarvis-hud/blob/main/backend/docs/API.md'
+      docker: '/api/docker/*',
+      homeAssistant: '/api/home-assistant/*',
+      security: '/api/security/*'
+    }
   });
 });
 
@@ -204,12 +238,6 @@ server.listen(PORT, HOST, () => {
   logger.info(`📡 WebSocket server ready for connections`);
   logger.info(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:8080'}`);
   logger.info(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
-  
-  // Initialize system monitoring
-  orchestrator.startSystemMonitoring();
-  
-  // Start WebSocket heartbeat
-  wsManager.startHeartbeat();
 });
 
 // Graceful shutdown handling
@@ -223,22 +251,8 @@ const gracefulShutdown = (signal) => {
     }
     
     logger.info('Server closed successfully');
-    
-    // Close WebSocket connections
-    wsManager.closeAllConnections();
-    
-    // Stop orchestrator
-    orchestrator.shutdown();
-    
-    logger.info('Graceful shutdown completed');
     process.exit(0);
   });
-  
-  // Force shutdown after 30 seconds
-  setTimeout(() => {
-    logger.error('Forced shutdown after timeout');
-    process.exit(1);
-  }, 30000);
 };
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
@@ -261,4 +275,4 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-module.exports = { app, server, wsManager, orchestrator };
+module.exports = { app, server, wss };

@@ -85,6 +85,48 @@ router.post('/toggle/:entityId', async (req, res) => {
   }
 });
 
+// Turn on entity (for frontend API compatibility)
+router.post('/turn-on', async (req, res) => {
+  try {
+    const { entityId } = req.body;
+    const domain = entityId.split('.')[0];
+    
+    const response = await axios.post(
+      `/api/services/${domain}/turn_on`,
+      { entity_id: entityId },
+      haConfig
+    );
+
+    res.json({
+      success: true,
+      data: response.data
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Turn off entity (for frontend API compatibility)
+router.post('/turn-off', async (req, res) => {
+  try {
+    const { entityId } = req.body;
+    const domain = entityId.split('.')[0];
+    
+    const response = await axios.post(
+      `/api/services/${domain}/turn_off`,
+      { entity_id: entityId },
+      haConfig
+    );
+
+    res.json({
+      success: true,
+      data: response.data
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get history for entity
 router.get('/history/:entityId', async (req, res) => {
   try {
