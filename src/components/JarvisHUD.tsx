@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Mic, MicOff, Volume2, VolumeX, Power, Cpu, HardDrive, Shield, Home, Server, Brain } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Power, Cpu, HardDrive, Shield, Home, Server, Brain, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HolographicRing } from '@/components/three/HolographicRing';
@@ -11,6 +11,7 @@ import { SecurityPanel } from '@/components/SecurityPanel';
 import { HomeAssistantPanel } from '@/components/HomeAssistantPanel';
 import { ConsolePanel } from '@/components/ConsolePanel';
 import { DockerPanel } from '@/components/DockerPanel';
+import SettingsPanel from '@/components/SettingsPanel';
 import { wsService, apiService } from '@/lib/api';
 
 const JarvisHUD = () => {
@@ -68,6 +69,7 @@ const JarvisHUD = () => {
     { id: 'home', label: 'Home', icon: Home },
     { id: 'servers', label: 'Servers', icon: Server },
     { id: 'security', label: 'Security', icon: Shield },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   return (
@@ -151,6 +153,7 @@ const JarvisHUD = () => {
               {activePanel === 'home' && <HomeAssistantPanel />}
               {activePanel === 'servers' && <DockerPanel />}
               {activePanel === 'security' && <SecurityPanel />}
+              {activePanel === 'settings' && <SettingsPanel />}
             </div>
 
             {/* Holographic Display */}

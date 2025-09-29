@@ -12,6 +12,7 @@ const systemRoutes = require('./routes/system');
 const dockerRoutes = require('./routes/docker');
 const homeassistantRoutes = require('./routes/homeassistant');
 const securityRoutes = require('./routes/security');
+const configRoutes = require('./routes/config');
 
 // Configure logger
 const logger = winston.createLogger({
@@ -158,6 +159,7 @@ app.use('/api/system', systemRoutes);
 app.use('/api/docker', dockerRoutes);
 app.use('/api/home-assistant', homeassistantRoutes);
 app.use('/api/security', securityRoutes);
+app.use('/api/config', configRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -189,7 +191,8 @@ app.get('/api', (req, res) => {
       system: '/api/system/*',
       docker: '/api/docker/*',
       homeAssistant: '/api/home-assistant/*',
-      security: '/api/security/*'
+      security: '/api/security/*',
+      config: '/api/config/*'
     }
   });
 });
