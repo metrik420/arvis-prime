@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { apiService, wsService } from '@/lib/api';
 import { VoiceWaveform } from './VoiceWaveform';
 import { VoiceConversation } from './VoiceConversation';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 
 interface VoiceCommand {
   id: string;
@@ -44,17 +46,26 @@ export const VoicePanel = () => {
     continuousListening: false,
     noiseReduction: true
   });
+  const [apiKey, setApiKey] = useState('');
+  const [testText, setTestText] = useState('Hello, I am Jarvis. How can I assist you today?');
+  const [isConnected, setIsConnected] = useState(false);
   const [availableVoices] = useState([
     { id: '9BWtsMINqrJLrRacOk9x', name: 'Aria', description: 'Natural female voice' },
     { id: 'CwhRBWXzGAHq8TQ4Fs17', name: 'Roger', description: 'Authoritative male voice' },
     { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', description: 'Friendly female voice' },
+    { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura', description: 'Professional female voice' },
+    { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', description: 'Friendly male voice' },
+    { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', description: 'Young male voice' },
     { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', description: 'Calm male voice' }
   ]);
+  const [error, setError] = useState<string | null>(null);
+  const [microphoneAccess, setMicrophoneAccess] = useState<boolean | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [audioLevel, setAudioLevel] = useState(0);
-  const [isConnected, setIsConnected] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
 
@@ -132,16 +143,16 @@ export const VoicePanel = () => {
       // Set up MediaRecorder
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+      chunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        chunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/wav' });
         await sendAudioForTranscription(audioBlob);
-        audioChunksRef.current = [];
+        chunksRef.current = [];
       };
 
       mediaRecorder.start();

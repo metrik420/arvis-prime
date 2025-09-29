@@ -12,13 +12,14 @@ import { HomeAssistantPanel } from '@/components/HomeAssistantPanel';
 import { ConsolePanel } from '@/components/ConsolePanel';
 import { DockerPanel } from '@/components/DockerPanel';
 import { NetworkPanel } from '@/components/NetworkPanel';
+import { MasterControlPanel } from '@/components/MasterControlPanel';
 import SettingsPanel from '@/components/SettingsPanel';
 import { wsService, apiService } from '@/lib/api';
 
 const JarvisHUD = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [activePanel, setActivePanel] = useState('network');
+  const [activePanel, setActivePanel] = useState('master');
   const [isOnline, setIsOnline] = useState(false);
 
   // Connect to WebSocket on component mount
@@ -66,10 +67,10 @@ const JarvisHUD = () => {
   };
 
   const navigationItems = [
-    { id: 'console', label: 'Console', icon: Brain },
+    { id: 'master', label: 'Master Control', icon: Brain },
     { id: 'network', label: 'Network', icon: Network },
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'servers', label: 'Servers', icon: Server },
+    { id: 'home', label: 'Home Assistant', icon: Home },
+    { id: 'servers', label: 'Docker', icon: Server },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
@@ -151,7 +152,7 @@ const JarvisHUD = () => {
           <div className="h-full flex">
             {/* Primary Panel */}
             <div className="flex-1 p-6 overflow-y-auto">
-              {activePanel === 'console' && <ConsolePanel />}
+              {activePanel === 'master' && <MasterControlPanel />}
               {activePanel === 'network' && <NetworkPanel />}
               {activePanel === 'home' && <HomeAssistantPanel />}
               {activePanel === 'servers' && <DockerPanel />}
